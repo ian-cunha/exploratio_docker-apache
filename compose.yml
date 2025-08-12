@@ -1,0 +1,8 @@
+services:
+  apache:
+    image: httpd
+    container_name: exploratio
+    ports:
+    - '8080:80'
+    volumes:
+    - /data/exploratio:/usr/local/apache2/htdocs

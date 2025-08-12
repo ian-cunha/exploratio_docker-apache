@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Exploratio</title>
+    <meta name="description" content="Expedições, pesquisa e conservação na Floresta Amazônica.">
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2309a66d' d='M32 4c9 0 18 12 18 24S41 60 32 60 14 46 14 28 23 4 32 4z'/%3E%3C/svg%3E">
+
+    <!-- Leaflet CSS (CDN) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <style>
+        /* ====== Design System ====== */
+        :root {
+            --bg: #0b1411;
+            --surface: #0f1c17;
+            --card: #14241d;
+            --text: #e9fbf3;
+            --muted: #abdbc7;
+            --brand: #14b87a;
+            --brand-2: #29e0a0;
+            --accent: #5bf0c1;
+            --warning: #ffdd57;
+            --ring: 0 0 0 3px rgba(20, 184, 122, .25);
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            --radius: 16px;
+        }
+
+        .light {
+            --bg: #f6fff9;
+            --surface: #ffffff;
+            --card: #f2fbf7;
+            --text: #0f2a22;
+            --muted: #2f6b56;
+            --brand: #0c9a63;
+            --brand-2: #14b87a;
+            --accent: #13c08b;
+            --warning: #946200;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .08);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+            background: radial-gradient(1200px 600px at 80% -20%, rgba(41, 224, 160, .15), transparent 60%), var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none
+        }
+
+        img {
+            max-width: 100%;
+            display: block
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(90deg, var(--brand), var(--brand-2));
+            color: #05291c;
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transform: translateY(0);
+            transition: .2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px)
+        }
+
+        .btn.ghost {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, .15)
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(91, 240, 193, .15);
+            color: var(--accent);
+            border: 1px solid rgba(91, 240, 193, .35)
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+            background: color-mix(in oklab, var(--bg) 85%, transparent);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: .4px
+        }
+
+        .brand-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--brand), var(--accent))
+        }
+
+        .nav a {
+            opacity: .85;
+            font-weight: 600;
+            padding: 8px 10px;
+            border-radius: 10px
+        }
+
+        .nav a:hover {
+            background: rgba(255, 255, 255, .06)
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            cursor: pointer;
+            background: linear-gradient(90deg, var(--brand), var(--brand-2));
+            color: #05291c;
+            font-weight: 600;
+            transition: background 0.3s, color 0.3s, border 0.3s;
+        }
+
+        .light .theme-toggle {
+            background: linear-gradient(90deg, var(--brand), var(--accent));
+            color: white;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        .theme-toggle:hover {
+            filter: brightness(1.05);
+        }
+
+        /* ====== Hero ====== */
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 64px 0 40px
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.2fr .8fr;
+            gap: 32px;
+            align-items: center
+        }
+
+        .hero h1 {
+            font-size: clamp(28px, 4vw, 48px);
+            line-height: 1.1;
+            margin: .2rem 0 .6rem
+        }
+
+        .hero p {
+            color: var(--muted);
+            margin: 0 0 1rem
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 10px
+        }
+
+        .hero-art {
+            position: relative;
+            aspect-ratio: 1/1;
+            border-radius: var(--radius);
+            background: radial-gradient(500px 180px at 30% 10%, rgba(20, 184, 122, .25), transparent 60%), linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0));
+            border: 1px solid rgba(255, 255, 255, .08);
+            box-shadow: var(--shadow);
+            overflow: hidden
+        }
+
+        .leaf {
+            position: absolute;
+            inset: auto;
+            width: 160px;
+            height: 160px;
+            opacity: .18;
+            filter: drop-shadow(0 6px 20px rgba(0, 0, 0, .25));
+            animation: float 8s ease-in-out infinite
+        }
+
+        .leaf:nth-child(1) {
+            top: -10px;
+            right: -20px;
+            animation-delay: 0s
+        }
+
+        .leaf:nth-child(2) {
+            bottom: -20px;
+            left: -10px;
+            transform: rotate(60deg);
+            animation-delay: 1.2s
+        }
+
+        .leaf:nth-child(3) {
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(15deg);
+            width: 220px;
+            height: 220px;
+            opacity: .12;
+            animation-delay: .4s
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0)
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(3deg)
+            }
+
+            100% {
+                transform: translateY(0) rotate(0)
+            }
+        }
+
+        /* ====== Sections / Cards ====== */
+        section {
+            padding: 56px 0
+        }
+
+        .section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: clamp(22px, 3vw, 32px)
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr)
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow)
+        }
+
+        .card>.media {
+            height: 180px;
+            background: linear-gradient(135deg, rgba(20, 184, 122, .35), rgba(41, 224, 160, .2))
+        }
+
+        .card-body {
+            padding: 16px
+        }
+
+        .tag-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px
+        }
+
+        /* ====== Gallery ====== */
+        .gallery {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(6, 1fr);
+            grid-auto-rows: 120px
+        }
+
+        .tile {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: #0a1a14
+        }
+
+        .tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .25s
+        }
+
+        .tile:hover img {
+            transform: scale(1.05)
+        }
+
+        .tile.large {
+            grid-column: span 3;
+            grid-row: span 2
+        }
+
+        .tile.wide {
+            grid-column: span 2;
+            grid-row: span 1
+        }
+
+        .tile.tall {
+            grid-column: span 1;
+            grid-row: span 2
+        }
+
+        /* ====== Map (Leaflet) ====== */
+        .map {
+            background: radial-gradient(1200px 400px at 50% -20%, rgba(41, 224, 160, .15), transparent 60%), var(--surface);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow)
+        }
+
+        #leafletMap {
+            height: 380px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .15)
+        }
+
+        .leaflet-container {
+            background: #05291c
+        }
+
+        /* ====== Accordion ====== */
+        .accordion {
+            display: grid;
+            gap: 10px
+        }
+
+        .acc-item {
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--card)
+        }
+
+        .acc-btn {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 14px 16px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer
+        }
+
+        .acc-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .25s ease;
+            padding: 0 16px
+        }
+
+        .acc-item.active .acc-panel {
+            max-height: 200px;
+            padding: 0 16px 16px
+        }
+
+        /* ====== Footer ====== */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+            font-size: 14px
+        }
+
+        /* ====== Responsive ====== */
+        @media (max-width: 900px) {
+            .hero-grid {
+                grid-template-columns: 1fr
+            }
+
+            .grid-3 {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .gallery {
+                grid-template-columns: repeat(4, 1fr)
+            }
+        }
+
+        @media (max-width: 640px) {
+            .nav-links {
+                display: none
+            }
+
+            .grid-3,
+            .grid-2 {
+                grid-template-columns: 1fr
+            }
+
+            .gallery {
+                grid-template-columns: repeat(2, 1fr);
+                grid-auto-rows: 110px
+            }
+
+            #leafletMap {
+                height: 300px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ====== Header / Nav ====== -->
+    <header>
+        <div class="container nav">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true"></div>
+                <span>Exploratio</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#sobre">Sobre</a>
+                <a href="#expedicoes">Expedições</a>
+                <a href="#galeria">Galeria</a>
+                <a href="#mapa">Mapa</a>
+                <a href="#contato">Contato</a>
+            </nav>
+            <button id="themeBtn" class="theme-toggle" aria-label="Alternar tema">
+                <span aria-hidden="true">🌙</span><span>Modo</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ====== Hero ====== -->
+    <section class="hero">
+        <div class="container hero-grid">
+            <div>
+                <span class="chip">Pesquisa · Conservação · Cultura</span>
+                <h1>Descubra a maior floresta tropical do mundo</h1>
+                <p>Expedições científicas, mapeamento participativo e ações de conservação que conectam pessoas,
+                    biodiversidade e tecnologia de campo.</p>
+                <div class="hero-cta">
+                    <a href="#expedicoes" class="btn">Ver expedições</a>
+                    <a href="#contato" class="btn ghost" role="button">Fale com a equipe</a>
+                </div>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+                <svg class="leaf" viewBox="0 0 64 64">
+                    <path fill="#5bf0c1" d="M50 32C50 20 42 8 32 8S14 20 14 32s8 24 18 24 18-12 18-24Z" />
+                </svg>
+                <svg class="leaf" viewBox="0 0 64 64">
+                    <path fill="#14b87a" d="M14 32c0 12 8 24 18 24s18-12 18-24S42 8 32 8 14 20 14 32Z" />
+                </svg>
+                <svg class="leaf" viewBox="0 0 64 64">
+                    <path fill="#29e0a0" d="M32 6c10 0 20 13 20 26S42 58 32 58 12 45 12 32 22 6 32 6Z" />
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== Sobre ====== -->
+    <section id="sobre">
+        <div class="container">
+            <div class="section-head">
+                <h2>Sobre o projeto</h2>
+                <span class="muted">Missão, visão e impacto</span>
+            </div>
+            <div class="grid grid-3">
+                <article class="card">
+                    <div class="card-body">
+                        <div class="tag-row"><span class="chip">Pesquisa</span></div>
+                        <h3>Ciência de campo</h3>
+                        <p>Coletas botânicas, bioacústica e monitoramento da fauna com metodologias abertas e
+                            reprodutíveis.</p>
+                    </div>
+                </article>
+                <article class="card">
+                    <div class="card-body">
+                        <div class="tag-row"><span class="chip">Conservação</span></div>
+                        <h3>Corredores ecológicos</h3>
+                        <p>Mapeamento de conectividade, restauração de áreas degradadas e engajamento comunitário.</p>
+                    </div>
+                </article>
+                <article class="card">
+                    <div class="card-body">
+                        <div class="tag-row"><span class="chip">Cultura</span></div>
+                        <h3>Saberes amazônicos</h3>
+                        <p>Trabalho colaborativo com comunidades locais para documentação de saberes e práticas
+                            sustentáveis.</p>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== Expedições ====== -->
+    <section id="expedicoes">
+        <div class="container">
+            <div class="section-head">
+                <h2>Expedições em destaque</h2>
+                <span class="muted">Roteiros e objetivos</span>
+            </div>
+            <div class="grid grid-3" id="expList"></div>
+        </div>
+    </section>
+
+    <!-- ====== Galeria ====== -->
+    <section id="galeria">
+        <div class="container">
+            <div class="section-head">
+                <h2>Galeria</h2>
+                <span class="muted">Momentos das jornadas</span>
+            </div>
+            <div class="gallery">
+                <a class="tile large" href="#" aria-label="Canoas no rio"><img
+                        src="https://picsum.photos/seed/amazonia1/900/720" alt="Canoas no rio ao pôr do sol"></a>
+                <a class="tile wide" href="#"><img src="https://picsum.photos/seed/amazonia2/600/400"
+                        alt="Copa das árvores"></a>
+                <a class="tile" href="#"><img src="https://picsum.photos/seed/amazonia3/400/400"
+                        alt="Detalhe de folha"></a>
+                <a class="tile tall" href="#"><img src="https://picsum.photos/seed/amazonia4/400/600"
+                        alt="Trilha na mata"></a>
+                <a class="tile wide" href="#"><img src="https://picsum.photos/seed/amazonia5/600/400"
+                        alt="Comunidade ribeirinha"></a>
+                <a class="tile" href="#"><img src="https://picsum.photos/seed/amazonia6/400/400"
+                        alt="Texturas da floresta"></a>
+                <a class="tile wide" href="#"><img src="https://picsum.photos/seed/amazonia7/600/400"
+                        alt="Céu amazônico"></a>
+                <a class="tile" href="#"><img src="https://picsum.photos/seed/amazonia8/400/400" alt="Rio sinuoso"></a>
+                <a class="tile tall" href="#"><img src="https://picsum.photos/seed/amazonia9/400/600"
+                        alt="Cipós e raízes"></a>
+                <a class="tile" href="#"><img src="https://picsum.photos/seed/amazonia10/400/400" alt="Flor nativa"></a>
+                <a class="tile wide" href="#"><img src="https://picsum.photos/seed/amazonia11/600/400"
+                        alt="Neblina sobre o rio"></a>
+                <a class="tile" href="#"><img src="https://picsum.photos/seed/amazonia12/400/400"
+                        alt="Inseto em macro"></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== Mapa (Leaflet) ====== -->
+    <section id="mapa">
+        <div class="container">
+            <div class="section-head">
+                <h2>Mapa de pontos de observação</h2>
+                <span class="muted">Mapa atualizado em 2025</span>
+            </div>
+            <div class="map">
+                <div id="leafletMap" role="application" aria-label="Mapa da Amazônia com marcadores"></div>
+                <p class="muted" style="margin-top:8px">
+                    Pontos de interesse incluem áreas de pesquisa, comunidades.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== FAQ ====== -->
+    <section>
+        <div class="container">
+            <div class="section-head">
+                <h2>Perguntas frequentes</h2>
+                <span class="muted">Logística, segurança e clima</span>
+            </div>
+            <div class="accordion" id="faq">
+                <div class="acc-item">
+                    <button class="acc-btn">Quando ocorrem as expedições? <span>▾</span></button>
+                    <div class="acc-panel">
+                        <p>As saídas principais acontecem na estação seca (junho–novembro), com turmas reduzidas e foco
+                            em pesquisa.</p>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <button class="acc-btn">Preciso de experiência prévia?<span>▾</span></button>
+                    <div class="acc-panel">
+                        <p>Não é obrigatório, mas condicionamento físico leve e disposição para caminhadas em terreno
+                            irregular são recomendados.</p>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <button class="acc-btn">Quais equipamentos eu levo?<span>▾</span></button>
+                    <div class="acc-panel">
+                        <p>Botas impermeáveis, capas de chuva, repelente, garrafa térmica e lanterna frontal são
+                            essenciais.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== Contato ====== -->
+    <section id="contato">
+        <div class="container">
+            <div class="section-head">
+                <h2>Fale com a equipe</h2>
+                <span class="muted">Responderemos em até 2 dias úteis</span>
+            </div>
+            <form id="contactForm" class="card" style="padding:16px; display:grid; gap:12px">
+                <div style="display:grid; gap:8px">
+                    <label for="nome">Nome</label>
+                    <input id="nome" name="nome" required placeholder="Seu nome completo"
+                        style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text)">
+                </div>
+                <div style="display:grid; gap:8px">
+                    <label for="email">E-mail</label>
+                    <input id="email" name="email" type="email" required placeholder="voce@exemplo.com"
+                        style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text)">
+                </div>
+                <div style="display:grid; gap:8px">
+                    <label for="mensagem">Mensagem</label>
+                    <textarea id="mensagem" name="mensagem" rows="5" placeholder="Conte como podemos ajudar"
+                        style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--text)"></textarea>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap">
+                    <small class="muted">Ao enviar, você concorda com os termos de contato.</small>
+                    <button class="btn" type="submit">Enviar mensagem</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ====== Footer ====== -->
+    <footer>
+        <div class="container" style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap">
+            <span>© <span id="year"></span> Exploratio</span>
+            <span>Desenvolvido por · Ian Cunha</span>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS (CDN) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // ====== Dark / Light Mode ======
+        const themeBtn = document.getElementById('themeBtn');
+        const prefer = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        const saved = localStorage.getItem('theme') || prefer;
+        if (saved === 'light') { document.documentElement.classList.add('light'); }
+        themeBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('light');
+            const active = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+            localStorage.setItem('theme', active);
+            themeBtn.firstElementChild.textContent = active === 'light' ? '☀️' : '🌙';
+            if (window.__map) {
+                const isLight = document.documentElement.classList.contains('light');
+                setBaseLayer(isLight ? 'light' : 'dark');
+            }
+        });
+
+        // ====== Ano no footer ======
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // ====== Expedições (mock) ======
+        const expedicoes = [
+            { titulo: 'Rio Negro · Bioacústica', desc: 'Escutas de aves e anfíbios, montagem de pontos autônomos e trilhas noturnas.', tags: ['Bioacústica', 'Fauna'], img: 'https://picsum.photos/seed/rionegro/800/450' },
+            { titulo: 'Juruá · Fitossociologia', desc: 'Parcelas permanentes para análise de regeneração natural e inventário rápido.', tags: ['Botânica', 'Parcelas'], img: 'https://picsum.photos/seed/jurua/800/450' },
+            { titulo: 'Tapajós · Comunidades', desc: 'Cartografia social, entrevistas e oficinas de mapeamento participativo.', tags: ['Cultura', 'Mapeamento'], img: 'https://picsum.photos/seed/tapajos/800/450' },
+            { titulo: 'Purus · Corredores', desc: 'Análise de conectividade e priorização de áreas para restauração.', tags: ['Conectividade', 'Conservação'], img: 'https://picsum.photos/seed/purus/800/450' },
+            { titulo: 'Madeira · Ictiofauna', desc: 'Amostragens padronizadas em igarapés e lagos de várzea.', tags: ['Peixes', 'Água'], img: 'https://picsum.photos/seed/madeira/800/450' },
+            { titulo: 'Xingu · Etnoecologia', desc: 'Intercâmbio de saberes e protocolos de uso de recursos naturais.', tags: ['Etnoecologia', 'Cultura'], img: 'https://picsum.photos/seed/xingu/800/450' },
+        ];
+        const expList = document.getElementById('expList');
+        expList.innerHTML = expedicoes.map(ex => `
+      <article class="card">
+        <img class="media" src="${ex.img}" alt="${ex.titulo}">
+        <div class="card-body">
+          <div class="tag-row">${ex.tags.map(t => `<span class="chip">${t}</span>`).join('')}</div>
+          <h3>${ex.titulo}</h3>
+          <p>${ex.desc}</p>
+          <div style="display:flex; gap:10px; margin-top:8px">
+            <a class="btn" href="#contato">Quero participar</a>
+            <a class="btn ghost" href="#mapa">Ver no mapa</a>
+          </div>
+        </div>
+      </article>
+    `).join('');
+
+        // ====== Accordion ======
+        document.querySelectorAll('.acc-item').forEach(item => {
+            const btn = item.querySelector('.acc-btn');
+            btn.addEventListener('click', () => {
+                const active = item.classList.toggle('active');
+                if (active) {
+                    document.querySelectorAll('.acc-item').forEach(i => { if (i !== item) i.classList.remove('active'); });
+                }
+            });
+        });
+
+        // ====== Mapa com Leaflet ======
+        const points = [
+            { name: 'Manaus', lon: -60.025, lat: -3.118 },
+            { name: 'Santarém', lon: -54.708, lat: -2.439 },
+            { name: 'Rio Branco', lon: -67.809, lat: -9.974 },
+            { name: 'Tabatinga', lon: -69.922, lat: -4.231 },
+            { name: 'Tefé', lon: -64.718, lat: -3.354 },
+            { name: 'Macapá', lon: -51.066, lat: 0.034 }
+        ];
+
+        // Camadas base
+        const tiles = {
+            light: L.tileLayer(
+                'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                { attribution: '&copy; OpenStreetMap &copy; CARTO' }
+            ),
+            dark: L.tileLayer(
+                'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                { attribution: '&copy; OpenStreetMap &copy; CARTO' }
+            ),
+        };
+
+        let baseLayerKey = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+        const map = L.map('leafletMap', { zoomControl: true, attributionControl: true, layers: [tiles[baseLayerKey]] });
+        window.__map = map;
+
+        // Marcadores
+        const markers = [];
+        points.forEach(p => {
+            const m = L.marker([p.lat, p.lon]).bindPopup(`
+        <strong>${p.name}</strong><br>
+        Lat: ${p.lat.toFixed(3)} · Lon: ${p.lon.toFixed(3)}
+      `);
+            m.addTo(map);
+            markers.push(m);
+        });
+
+        // Enquadrar todos os pontos
+        const group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.2));
+
+        // Função para trocar a camada base no toggle do tema
+        function setBaseLayer(mode) {
+            const next = mode === 'light' ? 'light' : 'dark';
+            if (next === baseLayerKey) return;
+            map.removeLayer(tiles[baseLayerKey]);
+            tiles[next].addTo(map);
+            baseLayerKey = next;
+        }
+
+        // Ajustar o mapa se o container mudar de tamanho
+        new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById('leafletMap'));
+
+        // ====== Formulário (não configurado ainda) ======
+        document.getElementById('contactForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.currentTarget));
+            alert(`Obrigado, ${data.nome}! Recebemos sua mensagem.\n\nResumo:\nE-mail: ${data.email}\nMensagem: ${data.mensagem?.slice(0, 200) || ''}`);
+            e.currentTarget.reset();
+        });
+    </script>
+</body>
+
+</html>
