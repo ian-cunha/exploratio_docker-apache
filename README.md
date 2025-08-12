@@ -1,4 +1,4 @@
-# 🌳 Exploração na Amazônia (Docker Compose + Apache(httpd))
+# 🌳 "Exploratio" Docker Compose + Apache(httpd)
 
 Este projeto é um site estático que apresenta um portal visual e interativo sobre a **Exploração na Amazônia**, destacando pesquisas de campo, corredores ecológicos, saberes culturais e expedições reais pela maior floresta tropical do mundo.
 
